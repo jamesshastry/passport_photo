@@ -116,6 +116,11 @@ def build_parser() -> argparse.ArgumentParser:
     out.add_argument("--no-proof", action="store_true")
     out.add_argument("--pdf", action="store_true",
                      help="also write each print sheet as PDF for lab upload")
+    make.add_argument(
+        "--continue-on-error", action="store_true",
+        help="batch only: run the remaining configs when one fails to load; "
+             "exits 1 if anything failed or errored",
+    )
     out.add_argument("--strict", action="store_true", help="exit non-zero if any check fails")
     make.add_argument(
         "--auto", action="store_true",
@@ -359,12 +364,50 @@ def _jobs_from_args(args: argparse.Namespace) -> list[pipeline.Job]:
     return [_apply_overrides(_job_from_flags(args), args)]
 
 
+def _warn_collisions(jobs: list[pipeline.Job]) -> None:
+    """Warn when two jobs would write the same main photo (last one wins)."""
+    seen: dict[tuple, str] = {}
+    for job in jobs:
+        key = (str(job.outdir), job.name, job.spec.key, job.spec.dpi)
+        if key in seen:
+            print(f"warning: {seen[key]} and {job.name} target the same "
+                  f"outputs - the later job overwrites the earlier one")
+        else:
+            seen[key] = job.name
+
+
+def _load_batch(
+    args: argparse.Namespace,
+) -> tuple[list[pipeline.Job], list[str]]:
+    """Load one job per config, isolating per-config failures.
+
+    Without --continue-on-error the first bad config raises as before;
+    with it, the error is collected and the rest still run.
+    """
+    jobs: list[pipeline.Job] = []
+    errors: list[str] = []
+    for config in args.configs:
+        try:
+            jobs.append(_apply_overrides(pipeline.load_job(config), args))
+        except (ValueError, KeyError, OSError, RuntimeError) as exc:
+            if not args.continue_on_error:
+                raise
+            errors.append(f"{config}: {exc}")
+            print(f"error: skipping {config}: {exc}")
+    return jobs, errors
+
+
 def cmd_make(args: argparse.Namespace) -> int:
-    jobs = _jobs_from_args(args)
+    errors: list[str] = []
+    if args.configs and args.continue_on_error:
+        jobs, errors = _load_batch(args)
+    else:
+        jobs = _jobs_from_args(args)
+    _warn_collisions(jobs)
 
     failures = 0
     for index, job in enumerate(jobs):
-        if len(jobs) > 1:
+        if len(jobs) > 1 or errors:
             print(f"=== [{index + 1}/{len(jobs)}] {job.name} ({job.spec.key}) ===")
         result = pipeline.run(job)
 
@@ -391,11 +434,16 @@ def cmd_make(args: argparse.Namespace) -> int:
             failures += 1
             print("\n  One or more checks FAILED - adjust the landmarks or pick a "
                   "different spec.")
-        if len(jobs) > 1:
+        if len(jobs) > 1 or errors:
             print()
 
-    if len(jobs) > 1:
-        print(f"batch: {len(jobs) - failures}/{len(jobs)} compliant")
+    if len(jobs) > 1 or errors:
+        summary = f"batch: {len(jobs) - failures}/{len(jobs)} compliant"
+        if errors:
+            summary += f", {len(errors)} errored"
+        print(summary)
+    if errors:
+        return 1
     if failures and args.strict:
         return 1
     return 0

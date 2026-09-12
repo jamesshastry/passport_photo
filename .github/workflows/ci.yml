@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.13"]
+        python-version: ["3.10", "3.11", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -19,3 +19,15 @@ jobs:
         run: pip install ".[test]"
       - name: Run tests
         run: pytest -q
+
+  live-detection:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install opencv only (not rembg - its model is 1 GB)
+        run: pip install ".[test]" opencv-python
+      - name: Positive-path detection (pass or documented skip, never silent)
+        run: pytest tests/test_detect_live.py -rs -q

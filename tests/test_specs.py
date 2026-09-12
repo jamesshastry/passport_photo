@@ -74,6 +74,18 @@ def test_freshness_note_pins_boundaries():
     assert note is not None and "2026-09" in note
 
 
+def test_no_spec_is_stale_today():
+    # Intentional time bomb: this fails once a standard goes 12 months
+    # without re-checking, forcing a review instead of silent drift.
+    from passportphoto.specs import freshness_note
+
+    stale = [
+        key for key, spec in load_specs().items()
+        if freshness_note(spec) is not None
+    ]
+    assert not stale, f"re-check these standards: {stale}"
+
+
 def test_freshness_note_handles_missing_and_broken_dates():
     from datetime import date
 

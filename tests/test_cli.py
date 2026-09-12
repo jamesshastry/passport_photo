@@ -164,6 +164,40 @@ def test_batch_runs_each_config_and_reports(tmp_path):
     assert (outdir / "twin_schengen_300dpi.png").exists()
 
 
+def test_batch_continues_past_a_bad_config(tmp_path):
+    outdir = tmp_path / "out"
+    proc = run_cli(
+        "make", "--config", str(tmp_path / "missing.json"),
+        "--config", "subjects/example/subject.json",
+        "--outdir", str(outdir), "--name", "survivor",
+        "--no-proof", "--no-spec-check", "--continue-on-error",
+    )
+    assert proc.returncode == 1
+    assert "1 errored" in proc.stdout
+    assert (outdir / "survivor_us_300dpi.png").exists()
+
+
+def test_batch_aborts_on_first_bad_config_by_default(tmp_path):
+    proc = run_cli(
+        "make", "--config", str(tmp_path / "missing.json"),
+        "--config", "subjects/example/subject.json",
+        "--outdir", str(tmp_path / "out"),
+    )
+    assert proc.returncode == 2
+
+
+def test_batch_warns_on_output_collision(tmp_path):
+    outdir = tmp_path / "out"
+    proc = run_cli(
+        "make", "--config", "subjects/example/subject.json",
+        "--config", "subjects/example/subject.json",
+        "--outdir", str(outdir), "--name", "twin",
+        "--no-proof", "--no-spec-check",
+    )
+    assert proc.returncode == 0
+    assert "overwrites" in proc.stdout
+
+
 def test_batch_strict_fails_when_any_job_fails(tmp_path):
     outdir = tmp_path / "out"
     proc = run_cli(

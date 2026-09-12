@@ -38,6 +38,48 @@ def test_draft_subject_without_matte_keeps_background():
     assert "eyes" not in draft["landmarks"]
 
 
+def test_sha256_known_vector(tmp_path):
+    target = tmp_path / "x.bin"
+    target.write_bytes(b"abc")
+    assert detect._sha256(target) == (
+        "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    )
+
+
+def _seed_cache(tmp_path, monkeypatch, payload: bytes):
+    cache = tmp_path / "cache"
+    monkeypatch.setenv("XDG_CACHE_HOME", str(cache))
+    dest = cache / "passportphoto" / detect.MODEL_FILENAME
+    dest.parent.mkdir(parents=True)
+    dest.write_bytes(payload)
+    return dest
+
+
+def test_model_path_accepts_matching_bytes_without_downloading(
+    tmp_path, monkeypatch
+):
+    import hashlib
+
+    payload = b"model bytes"
+    monkeypatch.setattr(
+        detect, "MODEL_SHA256", hashlib.sha256(payload).hexdigest()
+    )
+    monkeypatch.setattr(
+        detect, "_fetch",
+        lambda dest: (_ for _ in ()).throw(AssertionError("must not download")),
+    )
+    dest = _seed_cache(tmp_path, monkeypatch, payload)
+    assert detect._model_path() == dest
+
+
+def test_model_path_refuses_tampered_bytes(tmp_path, monkeypatch):
+    # Redownload disabled: a tampered file must fail loudly, not run.
+    monkeypatch.setattr(detect, "_fetch", lambda dest: None)
+    _seed_cache(tmp_path, monkeypatch, b"not the model")
+    with pytest.raises(RuntimeError, match="checksum"):
+        detect._model_path()
+
+
 def test_run_detect_without_extras_fails_cleanly(tmp_path, monkeypatch):
     import sys
     from pathlib import Path

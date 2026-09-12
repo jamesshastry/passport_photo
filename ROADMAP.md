@@ -34,6 +34,26 @@ measurements may fail.
   interior under every band/threshold tried, so it failed the gate. No
   detector ships on vibes.
 
+## Round 2 (from the adversarial review of shipped features)
+
+- [x] **Batch resilience** (`--continue-on-error`, per-job summary, collision
+  warning). One bad config no longer kills a 20-person batch.
+- [x] **Positive-path detection test in CI** (`test_detect_live.py` + CI job:
+  opencv only, never rembg's 1 GB model). Records YuNet finding no face on
+  the illustration — as predicted, detectors need real faces.
+- [x] **Checksum-pinned model downloads** with re-download on mismatch and a
+  clear refusal on unknown bytes.
+- [x] **CI freshness gate** — the suite fails once any `reviewed_on` exceeds
+  12 months. An intentional time bomb.
+- [ ] **Padding-aware `validate`** — investigated and dropped: per-side border
+  stats cannot separate padding fill from genuine white background (the clean
+  sample's top edge is perfectly flat white too). `make` already prints the
+  padding note at generation time, which is where the information lives.
+- [x] **Picker structural test** — every JS-referenced element id exists in
+  the template. (A headless-browser drag test was considered and rejected:
+  a browser toolchain is disproportionate for a Pillow+numpy project; the
+  coordinate mapping is already pinned in Python.)
+
 ## Rejected (adversarial review, kept as a record)
 
 - **Zero-review full-auto `make`** — the crown decides rejections and detectors

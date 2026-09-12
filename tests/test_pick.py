@@ -40,6 +40,13 @@ def test_page_embeds_source_mapping():
     assert init["lines"]["chin"] / scale == pytest.approx(1900, abs=0.11)
 
 
+def test_every_js_reference_has_matching_element():
+    referenced = set(re.findall(r"getElementById\(['\"]([^'\"]+)", picker._TEMPLATE))
+    defined = set(re.findall(r'id="([^"]+)"', picker._TEMPLATE))
+    assert referenced, "expected JS element lookups"
+    assert referenced <= defined, f"dangling references: {referenced - defined}"
+
+
 def test_page_has_no_external_dependencies():
     source = Image.open("subjects/example/source/portrait.jpg")
     html = picker.build_page(

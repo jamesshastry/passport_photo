@@ -36,6 +36,9 @@ MODEL_URL = (
     "face_detection_yunet_2023mar.onnx"
 )
 MODEL_FILENAME = "face_detection_yunet_2023mar.onnx"
+# sha256 of the upstream bytes. A mismatch means the file moved or was
+# tampered with: delete, re-download once, and fail loudly if it still differs.
+MODEL_SHA256 = "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4"
 # Faces below this confidence are ignored; the best of the rest wins.
 MIN_SCORE = 0.5
 
@@ -56,15 +59,41 @@ def _require(module: str, pip_name: str | None = None):
         ) from None
 
 
+def _sha256(path: Path) -> str:
+    import hashlib
+
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _fetch(dest: Path) -> None:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    print("downloading face-detector model (one time, ~1 MB) ...",
+          file=sys.stderr)
+    urllib.request.urlretrieve(MODEL_URL, dest)
+
+
 def _model_path() -> Path:
-    """The detector bundle, downloading it once on first use."""
+    """The detector bundle, verified against its checksum.
+
+    Downloads on first use; re-downloads once on mismatch, then fails loudly
+    rather than running detection on unknown bytes.
+    """
     cache = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
     dest = cache / "passportphoto" / MODEL_FILENAME
     if not dest.exists():
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        print("downloading face-detector model (one time, ~1 MB) ...",
-              file=sys.stderr)
-        urllib.request.urlretrieve(MODEL_URL, dest)
+        _fetch(dest)
+    if _sha256(dest) != MODEL_SHA256:
+        dest.unlink()
+        _fetch(dest)
+    if not dest.exists() or _sha256(dest) != MODEL_SHA256:
+        raise RuntimeError(
+            f"face-detector model at {dest} does not match its checksum - "
+            f"refusing to run. Delete it and retry on a trusted network."
+        )
     return dest
 
 
