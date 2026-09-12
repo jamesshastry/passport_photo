@@ -52,3 +52,37 @@ def test_every_spec_has_a_background_and_positive_geometry():
         assert spec.background.startswith("#"), key
         assert spec.head_min_mm < spec.head_max_mm, key
         assert spec.photo_w_mm > 0 and spec.photo_h_mm > 0, key
+
+
+def test_every_spec_carries_a_review_date():
+    import re
+
+    for key, spec in load_specs().items():
+        assert re.fullmatch(r"\d{4}-\d{2}", spec.reviewed_on), key
+
+
+def test_freshness_note_pins_boundaries():
+    from datetime import date
+
+    from passportphoto.specs import freshness_note
+
+    fresh = get_spec("us").at_dpi(300)
+    assert freshness_note(fresh, date(2026, 9, 1)) is None
+    # Exactly 12 months is still fresh; month 13 is stale.
+    assert freshness_note(fresh, date(2027, 9, 1)) is None
+    note = freshness_note(fresh, date(2027, 10, 1))
+    assert note is not None and "2026-09" in note
+
+
+def test_freshness_note_handles_missing_and_broken_dates():
+    from datetime import date
+
+    from passportphoto.specs import Spec, freshness_note
+
+    base = get_spec("us").__dict__
+    assert "no reviewed_on" in freshness_note(
+        Spec(**{**base, "reviewed_on": ""}), date(2026, 9, 1)
+    )
+    assert "unreadable" in freshness_note(
+        Spec(**{**base, "reviewed_on": "sometime"}), date(2026, 9, 1)
+    )

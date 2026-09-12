@@ -11,8 +11,9 @@ measurements may fail.
 - [x] **PDF print-sheet output** (`make --pdf`) — labs that take uploads often
   want PDF. Same tiling, different container; JPEG-encoded, so the PNG stays
   the exact artifact.
-- [ ] **Spec freshness** — `reviewed_on` per entry in `specs.json` plus a warning
-  when a standard is older than N months. Data-only, no code per country.
+- [x] **Spec freshness** — `reviewed_on` per entry in `specs.json` plus a warning
+  when a standard goes 12 months without re-checking. Data-only, no code per
+  country.
 
 ## Next (bigger, still on-mission)
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 MM_PER_INCH = 25.4
@@ -32,6 +33,7 @@ class Spec:
     head_max_mm: float
     background: str
     notes: str = ""
+    reviewed_on: str = ""  # YYYY-MM the guidance was last checked
     eye_min_mm: float | None = None
     eye_max_mm: float | None = None
     crown_gap_frac: float | None = None
@@ -125,6 +127,7 @@ def load_specs(path: Path | str | None = None) -> dict[str, Spec]:
             head_max_mm=float(body["head_max_mm"]),
             background=body.get("background", "#FFFFFF"),
             notes=body.get("notes", ""),
+            reviewed_on=body.get("reviewed_on", ""),
             eye_min_mm=_opt_float(body.get("eye_min_mm")),
             eye_max_mm=_opt_float(body.get("eye_max_mm")),
             crown_gap_frac=_opt_float(body.get("crown_gap_frac")),
@@ -144,3 +147,27 @@ def get_spec(key: str, path: Path | str | None = None) -> Spec:
 
 def _opt_float(value) -> float | None:
     return None if value is None else float(value)
+
+
+STALE_AFTER_MONTHS = 12
+
+
+def freshness_note(spec: Spec, today: date | None = None) -> str | None:
+    """Warn when a standard has not been re-checked within a year.
+
+    Pure function of the spec and the date, so tests pin it exactly.
+    """
+    if not spec.reviewed_on:
+        return f"note: {spec.key!r} has no reviewed_on date - confirm with the issuing authority"
+    try:
+        year, month = (int(part) for part in spec.reviewed_on.split("-", 1))
+    except ValueError:
+        return f"note: {spec.key!r} has an unreadable reviewed_on date - confirm with the issuing authority"
+    today = today or date.today()
+    age_months = (today.year - year) * 12 + (today.month - month)
+    if age_months > STALE_AFTER_MONTHS:
+        return (
+            f"note: {spec.key!r} was last reviewed {spec.reviewed_on} - "
+            f"confirm with the issuing authority before printing"
+        )
+    return None

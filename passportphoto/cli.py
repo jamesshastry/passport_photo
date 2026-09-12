@@ -18,7 +18,7 @@ from PIL import Image
 
 from . import enhance, overlay, pipeline, sheet
 from .landmarks import Landmarks
-from .specs import MM_PER_INCH, get_spec, load_specs
+from .specs import MM_PER_INCH, freshness_note, get_spec, load_specs
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -128,6 +128,8 @@ def cmd_specs() -> int:
         print(f"{'':<20} {spec.name}")
         if spec.notes:
             print(f"{'':<20} {spec.notes}")
+        if spec.reviewed_on:
+            print(f"{'':<20} reviewed {spec.reviewed_on}")
         print()
     return 0
 
@@ -342,6 +344,9 @@ def cmd_make(args: argparse.Namespace) -> int:
             print(f"=== [{index + 1}/{len(jobs)}] {job.name} ({job.spec.key}) ===")
         result = pipeline.run(job)
 
+        stale = freshness_note(job.spec)
+        if stale:
+            print(f"  {stale}")
         print(f"{job.spec.name}")
         print(f"  source   {job.input_path}")
         print(f"  photo    {job.spec.width_px}x{job.spec.height_px}px "

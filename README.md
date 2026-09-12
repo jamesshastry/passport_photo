@@ -116,9 +116,9 @@ passportphoto make --config subjects/ana/ana.json --config subjects/leo/leo.json
 `australia` · `japan` · `china_visa` · `icao` · `linkedin_headshot`
 
 **Add a country** by appending to `specs.json` — no code change needed. Every
-measurement there is in millimetres; `units` only controls reporting. These
-encode published guidance as of September 2026 — confirm with the issuing
-authority before you pay for prints.
+measurement there is in millimetres; `units` only controls reporting. Stamp
+`reviewed_on` with the month you checked the guidance — `make` warns once a
+standard goes a year without re-checking, because requirements change.
 
 ## How the framing works
 
