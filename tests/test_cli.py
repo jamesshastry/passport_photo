@@ -19,6 +19,37 @@ def run_cli(*argv: str) -> subprocess.CompletedProcess:
     )
 
 
+def test_specs_lists_review_dates():
+    proc = run_cli("specs")
+    assert proc.returncode == 0
+    assert proc.stdout.count("reviewed 20") >= 11
+
+
+def test_pick_writes_standalone_page(tmp_path):
+    out = tmp_path / "landmarks.html"
+    proc = run_cli(
+        "pick", "--input", "subjects/example/source/portrait.jpg",
+        "--out", str(out), "--spec", "us", "--name", "example",
+    )
+    assert proc.returncode == 0
+    html = out.read_text()
+    assert "data:image/jpeg;base64," in html
+    assert 'src="http' not in html and 'href="http' not in html
+
+
+def test_pick_rejects_bad_spec_and_landmarks(tmp_path):
+    bad_spec = run_cli(
+        "pick", "--input", "subjects/example/source/portrait.jpg",
+        "--out", str(tmp_path / "x.html"), "--spec", "atlantis",
+    )
+    assert bad_spec.returncode == 2
+    bad_lm = run_cli(
+        "pick", "--input", "subjects/example/source/portrait.jpg",
+        "--out", str(tmp_path / "y.html"), "--landmarks", "crown=oops",
+    )
+    assert bad_lm.returncode == 2
+
+
 def test_unknown_spec_is_an_error():
     proc = run_cli(
         "make", "--input", "subjects/example/source/portrait.jpg",
@@ -159,6 +190,28 @@ def test_pdf_flag_writes_upload_sheet(tmp_path):
     assert pdf.read_bytes()[:5] == b"%PDF-"
     report = json.loads((outdir / "pdf_us_report.json").read_text())
     assert pdf.name in report["outputs"]
+
+
+def test_pdf_config_file_option(tmp_path):
+    import json as _json
+
+    outdir = tmp_path / "out"
+    cfg = _json.loads(
+        (ROOT / "subjects" / "example" / "subject.json").read_text()
+    )
+    cfg["pdf"] = True
+    example = ROOT / "subjects" / "example"
+    cfg["input"] = str(example / "source" / "portrait.jpg")
+    cfg["background"]["matte"] = str(example / "source" / "matte.png")
+    config = tmp_path / "subject.json"
+    config.write_text(_json.dumps(cfg))
+    proc = run_cli(
+        "make", "--config", str(config),
+        "--outdir", str(outdir), "--name", "cfg",
+        "--no-proof", "--no-spec-check",
+    )
+    assert proc.returncode == 0
+    assert (outdir / "cfg_us_sheet_4x6_6up_300dpi.pdf").exists()
 
 
 def test_no_pdf_by_default(tmp_path):
