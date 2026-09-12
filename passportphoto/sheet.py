@@ -20,6 +20,9 @@ class Paper:
 PAPERS: dict[str, Paper] = {
     "4x6": Paper("4x6", '4x6 in photo print', 101.6, 152.4),
     "5x7": Paper("5x7", '5x7 in photo print', 127.0, 177.8),
+    "9x13cm": Paper("9x13cm", '9x13 cm photo print', 90.0, 130.0),
+    "10x15cm": Paper("10x15cm", '10x15 cm photo print', 100.0, 150.0),
+    "13x18cm": Paper("13x18cm", '13x18 cm photo print', 130.0, 180.0),
     "a6": Paper("a6", "A6", 105.0, 148.0),
     "a5": Paper("a5", "A5", 148.0, 210.0),
     "a4": Paper("a4", "A4", 210.0, 297.0),

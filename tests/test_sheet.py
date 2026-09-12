@@ -24,6 +24,21 @@ def test_canada_50x70_tiling_count():
     assert placed == 4
 
 
+@pytest.mark.parametrize(
+    ("paper", "placed", "size"),
+    [
+        ("9x13cm", 2, (1063, 1535)),
+        # 10x15cm is 1.6mm narrower than 4x6, which costs a whole column.
+        ("10x15cm", 2, (1181, 1772)),
+        ("13x18cm", 6, (1535, 2126)),
+    ],
+)
+def test_metric_lab_paper_tiling(paper: str, placed: int, size: tuple[int, int]):
+    tiled, actual = sheet.build(_photo("us"), paper, dpi=300)
+    assert actual == placed
+    assert tiled.size == size
+
+
 @pytest.mark.parametrize("paper", sorted(sheet.PAPERS))
 def test_every_paper_holds_at_least_one_us_photo(paper: str):
     _, placed = sheet.build(_photo("us"), paper, dpi=300)
