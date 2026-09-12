@@ -21,8 +21,10 @@ measurements may fail.
   page with draggable crown/chin/eye lines that exports `subject.json`.
   Kills the read-numbers-off-a-grid friction without touching the pipeline.
   No server, no upload, no state.
-- [ ] **Lighting check (warnings only)** — background uniformity + face shadow
-  asymmetry as WARN findings in `validate`. Never auto-corrects the face.
+- [x] **Lighting check (warnings only)** — side-lighting imbalance as a WARN
+  finding in `validate`. Never auto-corrects the face. Background uniformity
+  was dropped: on a finished crop the subject touches the frame edges, so no
+  edge/corner sample separates backdrop from subject without a matte.
 
 ## Later / experimental
 

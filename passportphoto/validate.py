@@ -62,6 +62,23 @@ def _laplacian_variance(photo: Image.Image) -> float:
     return float(lap.var())
 
 
+# Mean-luminance gap between the left and right halves of the frame centre
+# that earns a lighting warning. Calibrated: 0.2 on the even sample photo,
+# ~12 on a mildly side-lit real portrait, ~40 on a harsh synthetic shadow.
+# A warning, never a failure - faces are naturally asymmetric.
+IMBALANCE_WARN = 12.0
+
+
+def _side_imbalance(photo: Image.Image) -> float:
+    """Left/right lighting gap over the central region, in luma units."""
+    rgb = np.asarray(photo.convert("RGB"), dtype=np.float32)
+    h, w, _ = rgb.shape
+    luma = rgb @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+    mid = luma[h // 5:4 * h // 5, w // 4:3 * w // 4]
+    left, right = mid[:, :mid.shape[1] // 2], mid[:, mid.shape[1] // 2:]
+    return float(abs(left.mean() - right.mean()))
+
+
 def validate_photo(photo: Image.Image, spec: Spec) -> list[Finding]:
     """Inspect a finished photo. Pure function over pixels + spec."""
     findings: list[Finding] = []
@@ -106,6 +123,17 @@ def validate_photo(photo: Image.Image, spec: Spec) -> list[Finding]:
             "sharpness",
             "photo looks soft - it may have been upscaled or shot out of focus; "
             "retake rather than sharpen",
+            "WARN",
+        ))
+
+    imbalance = _side_imbalance(photo)
+    if imbalance <= IMBALANCE_WARN:
+        findings.append(Finding("lighting balance", "evenly lit", "PASS"))
+    else:
+        findings.append(Finding(
+            "lighting balance",
+            f"one side is markedly brighter (gap {imbalance:.0f}) - "
+            f"side shadows risk rejection; even out the light and retake",
             "WARN",
         ))
 

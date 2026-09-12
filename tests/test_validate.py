@@ -1,5 +1,6 @@
 """Validate a finished photo: dimensions are hard, the rest is advisory."""
 
+import numpy as np
 from PIL import Image, ImageFilter
 
 from passportphoto import validate as check
@@ -11,8 +12,28 @@ def test_correct_photo_passes_all():
     findings = check.validate_photo(photo, get_spec("us"))
     assert all(f.status == "PASS" for f in findings)
     assert {f.label for f in findings} == {
-        "dimensions", "background colour", "sharpness",
+        "dimensions", "background colour", "sharpness", "lighting balance",
     }
+
+
+def test_side_shadow_warns_on_lighting_only():
+    photo = Image.open("samples/sample_us_2x2.png").convert("RGB")
+    shaded = np.asarray(photo, dtype=np.float32)
+    shaded[:, :shaded.shape[1] // 2] *= 0.7
+    findings = check.validate_photo(
+        Image.fromarray(shaded.astype("uint8")), get_spec("us")
+    )
+    by_label = {f.label: f for f in findings}
+    assert by_label["lighting balance"].status == "WARN"
+    assert by_label["dimensions"].status == "PASS"
+    assert all(f.ok for f in findings)
+
+
+def test_lighting_never_fails():
+    assert check.IMBALANCE_WARN > 0
+    photo = Image.new("RGB", (600, 600), "#000000")
+    findings = check.validate_photo(photo, get_spec("us"))
+    assert all(f.ok for f in findings)
 
 
 def test_wrong_spec_fails_dimensions_only():
