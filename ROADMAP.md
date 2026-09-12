@@ -17,10 +17,10 @@ measurements may fail.
 
 ## Next (bigger, still on-mission)
 
-- [ ] **Guided landmark picker** — a single static local page with draggable
-  crown/chin/eye lines that writes back `subject.json`. Kills the
-  read-numbers-off-a-grid friction without touching the pipeline. No server,
-  no upload, no state.
+- [x] **Guided landmark picker** (`passportphoto pick`) — a single static local
+  page with draggable crown/chin/eye lines that exports `subject.json`.
+  Kills the read-numbers-off-a-grid friction without touching the pipeline.
+  No server, no upload, no state.
 - [ ] **Lighting check (warnings only)** — background uniformity + face shadow
   asymmetry as WARN findings in `validate`. Never auto-corrects the face.
 

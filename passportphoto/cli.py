@@ -63,6 +63,17 @@ def build_parser() -> argparse.ArgumentParser:
     validate.add_argument("--strict", action="store_true",
                           help="exit non-zero on warnings as well as failures")
 
+    pick = sub.add_parser(
+        "pick",
+        help="write a drag-the-lines landmark picker page (works from file://)",
+    )
+    pick.add_argument("--input", required=True, type=Path)
+    pick.add_argument("--out", type=Path, default=Path("landmarks.html"))
+    pick.add_argument("--landmarks",
+                      help="starting lines, e.g. crown=749,chin=1333,eye=1064,center=2012")
+    pick.add_argument("--spec", default="us")
+    pick.add_argument("--name", default="me")
+
     make = sub.add_parser("make", help="produce the photo, spec check and print sheets")
     make.add_argument("--config", dest="configs", action="append", type=Path,
                       help="subject JSON, repeatable for batch runs; other flags override it")
@@ -226,6 +237,19 @@ def _apply_overrides(job: pipeline.Job, args: argparse.Namespace) -> pipeline.Jo
     return job
 
 
+def cmd_pick(args: argparse.Namespace) -> int:
+    from . import pick as picker
+
+    get_spec(args.spec)  # fail fast on an unknown spec
+    landmarks = Landmarks.parse(args.landmarks) if args.landmarks else None
+    path = picker.write_page(
+        args.input, args.out, landmarks, args.spec, args.name,
+    )
+    print(f"wrote {path} - open it in a browser, drag the lines, export.")
+    print("Then confirm with the spec-check overlay before printing.")
+    return 0
+
+
 def cmd_detect(args: argparse.Namespace) -> int:
     from . import detect as auto
 
@@ -382,6 +406,7 @@ def main(argv: list[str] | None = None) -> int:
         "papers": lambda: cmd_papers(),
         "grid": lambda: cmd_grid(args),
         "detect": lambda: cmd_detect(args),
+        "pick": lambda: cmd_pick(args),
         "validate": lambda: cmd_validate(args),
         "make": lambda: cmd_make(args),
     }

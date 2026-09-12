@@ -90,6 +90,8 @@ offline.
 passportphoto specs     # list standards, with sizes and head tolerances
 passportphoto papers    # list print sheet sizes
 passportphoto grid      # labelled coordinate grid for reading landmarks
+passportphoto pick --input photo.jpg --out landmarks.html
+                    # drag-the-lines picker page (works from file://)
 passportphoto detect    # draft landmarks (+matte); needs .[auto]
 passportphoto validate --photo me_us_300dpi.png --spec us
 passportphoto make      # generate (add --strict to fail on any check failure)
