@@ -36,6 +36,7 @@ class Job:
     proof: bool = True
     spec_check: bool = True
     before_after: bool = True
+    pdf: bool = False
 
     @property
     def background_color(self) -> str:
@@ -126,6 +127,11 @@ def run(job: Job) -> Result:
         path = job.outdir / f"{stem}_sheet_{paper_key}_{placed}up_{job.spec.dpi}dpi.png"
         tiled.save(path, dpi=dpi)
         written.append(path)
+
+        if job.pdf:
+            pdf_path = job.outdir / f"{stem}_sheet_{paper_key}_{placed}up_{job.spec.dpi}dpi.pdf"
+            tiled.save(pdf_path, "PDF", resolution=float(job.spec.dpi))
+            written.append(pdf_path)
 
         if job.proof:
             proof = tiled.copy()
@@ -240,4 +246,5 @@ def load_job(config_path: Path, overrides: dict | None = None) -> Job:
         proof=bool(cfg.get("proof", True)),
         spec_check=bool(cfg.get("spec_check", True)),
         before_after=bool(cfg.get("before_after", True)),
+        pdf=bool(cfg.get("pdf", False)),
     )

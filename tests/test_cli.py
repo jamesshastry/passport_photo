@@ -146,6 +146,32 @@ def test_batch_strict_fails_when_any_job_fails(tmp_path):
     assert "batch: 0/2 compliant" in proc.stdout
 
 
+def test_pdf_flag_writes_upload_sheet(tmp_path):
+    outdir = tmp_path / "out"
+    proc = run_cli(
+        "make", "--config", "subjects/example/subject.json",
+        "--outdir", str(outdir), "--name", "pdf",
+        "--sheet", "4x6", "--pdf",
+        "--no-proof", "--no-spec-check",
+    )
+    assert proc.returncode == 0
+    pdf = outdir / "pdf_us_sheet_4x6_6up_300dpi.pdf"
+    assert pdf.read_bytes()[:5] == b"%PDF-"
+    report = json.loads((outdir / "pdf_us_report.json").read_text())
+    assert pdf.name in report["outputs"]
+
+
+def test_no_pdf_by_default(tmp_path):
+    outdir = tmp_path / "out"
+    proc = run_cli(
+        "make", "--config", "subjects/example/subject.json",
+        "--outdir", str(outdir), "--name", "nopdf",
+        "--no-proof", "--no-spec-check",
+    )
+    assert proc.returncode == 0
+    assert list(outdir.glob("*.pdf")) == []
+
+
 def test_non_strict_still_writes_despite_failure(tmp_path):
     outdir = tmp_path / "out"
     proc = run_cli(

@@ -103,6 +103,8 @@ def build_parser() -> argparse.ArgumentParser:
     out.add_argument("--gutter", type=float, help="gap between photos in mm (default 0)")
     out.add_argument("--no-spec-check", action="store_true")
     out.add_argument("--no-proof", action="store_true")
+    out.add_argument("--pdf", action="store_true",
+                     help="also write each print sheet as PDF for lab upload")
     out.add_argument("--strict", action="store_true", help="exit non-zero if any check fails")
     make.add_argument(
         "--auto", action="store_true",
@@ -217,6 +219,8 @@ def _apply_overrides(job: pipeline.Job, args: argparse.Namespace) -> pipeline.Jo
         job.spec_check = False
     if args.no_proof:
         job.proof = False
+    if args.pdf:
+        job.pdf = True
     return job
 
 
