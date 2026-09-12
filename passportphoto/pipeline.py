@@ -230,6 +230,11 @@ def load_job(config_path: Path, overrides: dict | None = None) -> Job:
     spec = get_spec(cfg["spec"])
     if cfg.get("dpi"):
         spec = spec.at_dpi(int(cfg["dpi"]))
+    if "landmarks" not in cfg:
+        raise KeyError(
+            f"no landmarks in {config_path.name} - measure them with "
+            f"`passportphoto pick` or `passportphoto detect` first"
+        )
 
     adj_cfg = cfg.get("adjustments", {})
     sheets = cfg.get("sheets", ["4x6"])

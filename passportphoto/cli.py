@@ -40,6 +40,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     papers = sub.add_parser("papers", help="list the available print sheet sizes")
 
+    init = sub.add_parser(
+        "init", help="scaffold a new subject folder with a starter config",
+    )
+    init.add_argument("--outdir", type=Path, default=Path("subjects/me"))
+    init.add_argument("--name", default="me")
+    init.add_argument("--spec", default="us",
+                      help="standard key (see `passportphoto specs`)")
+
     detect = sub.add_parser(
         "detect",
         help="draft landmarks (+matte) with auto-detection; needs passportphoto[auto]",
@@ -241,6 +249,19 @@ def _apply_overrides(job: pipeline.Job, args: argparse.Namespace) -> pipeline.Jo
     if args.pdf:
         job.pdf = True
     return job
+
+
+def cmd_init(args: argparse.Namespace) -> int:
+    from . import init as scaffolder
+
+    get_spec(args.spec)  # fail fast on an unknown spec
+    config = scaffolder.scaffold(args.outdir, args.name, args.spec)
+    print(f"wrote {config}")
+    print(f"  1. copy your portrait to {args.outdir}/source/portrait.jpg")
+    print("  2. measure landmarks: `passportphoto pick` (precise) or "
+          "`passportphoto detect` (first draft)")
+    print(f"  3. run `passportphoto make --config {config}`")
+    return 0
 
 
 def cmd_pick(args: argparse.Namespace) -> int:
@@ -490,6 +511,7 @@ def cmd_make(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     handlers = {
+        "init": lambda: cmd_init(args),
         "specs": lambda: cmd_specs(),
         "papers": lambda: cmd_papers(),
         "grid": lambda: cmd_grid(args),

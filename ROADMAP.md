@@ -38,6 +38,10 @@ measurements may fail.
 
 - [x] **Validate directory mode** — `--photo` repeatable, directories scanned
   for images, per-photo headers plus a `validate: x/y passed` summary.
+- [x] **Windows CI leg** — full matrix on `windows-latest` (suite audited free
+  of POSIX assumptions first).
+- [x] **Subject `init` scaffolding** — folder layout plus a landmarks-free
+  starter config; `make` on a fresh scaffold guides to `pick`/`detect`.
 
 ## Round 2 (from the adversarial review of shipped features)
 

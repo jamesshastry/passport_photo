@@ -19,6 +19,9 @@ pip install ".[auto]"
 
 ## Quickstart (manual path, always works)
 
+**0. Scaffold (optional).** `passportphoto init --outdir subjects/me` creates
+the folder and a starter config, then tells you the next steps.
+
 **1. Cut the subject out.** You need an alpha matte: a greyscale PNG the same
 shape as your photo, white where the subject is, black where the background is.
 Make it in Photoshop (Select Subject → refine hair), GIMP, or any
@@ -87,6 +90,7 @@ offline.
 ## Commands
 
 ```bash
+passportphoto init --outdir subjects/me   # scaffold a subject folder
 passportphoto specs     # list standards, with sizes and head tolerances
 passportphoto papers    # list print sheet sizes
 passportphoto grid      # labelled coordinate grid for reading landmarks
