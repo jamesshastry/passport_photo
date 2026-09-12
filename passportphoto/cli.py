@@ -381,6 +381,8 @@ def cmd_make(args: argparse.Namespace) -> int:
         print()
         for check in result.checks:
             print("  " + check.format(job.spec.units))
+        for advisory in result.advisories:
+            print("  " + advisory.format())
         print()
         for path in result.written:
             print(f"  wrote {path}")

@@ -28,9 +28,11 @@ measurements may fail.
 
 ## Later / experimental
 
-- [ ] **Glasses-glare and mouth-open heuristics** — warnings only, and only if
-  false-positive rates can be measured against a labelled set. No detector
-  ships on vibes.
+- [x] **Glasses-glare heuristic** — WARN-only advisory at `make` time,
+  calibrated 0.03 clean / 0.37 glare against a 0.15 threshold. Mouth-open
+  detection was measured and **rejected**: beard stubble reads as mouth
+  interior under every band/threshold tried, so it failed the gate. No
+  detector ships on vibes.
 
 ## Rejected (adversarial review, kept as a record)
 

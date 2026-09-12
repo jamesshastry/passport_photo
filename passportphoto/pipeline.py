@@ -8,9 +8,10 @@ from pathlib import Path
 
 from PIL import Image
 
-from . import background, compose, enhance, overlay, sheet
+from . import background, compose, enhance, overlay, quality, sheet
 from .landmarks import Landmarks
 from .specs import Check, Spec, get_spec
+from .validate import Finding
 
 
 @dataclass
@@ -49,6 +50,7 @@ class Result:
     framing: compose.Framing
     checks: list[Check]
     written: list[Path]
+    advisories: list[Finding] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -94,6 +96,7 @@ def run(job: Job) -> Result:
     photo = enhance.apply(raw_crop, job.adjustments)
 
     checks = compose.validate(job.spec, framing)
+    advisories = quality.assess(photo, framing)
 
     report_extra = {"roll_corrected_degrees": round(roll, 3)}
 
@@ -141,10 +144,19 @@ def run(job: Job) -> Result:
             written.append(proof_path)
 
     report = job.outdir / f"{stem}_report.json"
-    report.write_text(json.dumps(_report(job, framing, checks, written, report_extra), indent=2), encoding="utf-8")
+    report.write_text(
+        json.dumps(
+            _report(job, framing, checks, written, report_extra, advisories),
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     written.append(report)
 
-    return Result(job=job, framing=framing, checks=checks, written=written)
+    return Result(
+        job=job, framing=framing, checks=checks, written=written,
+        advisories=advisories,
+    )
 
 
 def _report(
@@ -153,6 +165,7 @@ def _report(
     checks: list[Check],
     written: list[Path],
     extra: dict,
+    advisories: list[Finding] | None = None,
 ) -> dict:
     return {
         "input": str(job.input_path),
@@ -192,6 +205,7 @@ def _report(
             for c in checks
         ],
         "compliant": all(c.ok for c in checks),
+        "advisories": [a.format() for a in (advisories or [])],
         "outputs": [p.name for p in written],
     }
 
