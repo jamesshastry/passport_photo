@@ -53,8 +53,19 @@ def build_parser() -> argparse.ArgumentParser:
     detect.add_argument("--no-matte", action="store_true",
                         help="skip the rembg cutout, draft landmarks only")
 
+    validate = sub.add_parser(
+        "validate",
+        help="check a finished photo against a standard without generating anything",
+    )
+    validate.add_argument("--photo", required=True, type=Path)
+    validate.add_argument("--spec", required=True,
+                          help="standard key (see `passportphoto specs`)")
+    validate.add_argument("--strict", action="store_true",
+                          help="exit non-zero on warnings as well as failures")
+
     make = sub.add_parser("make", help="produce the photo, spec check and print sheets")
-    make.add_argument("--config", type=Path, help="subject JSON; other flags override it")
+    make.add_argument("--config", dest="configs", action="append", type=Path,
+                      help="subject JSON, repeatable for batch runs; other flags override it")
     make.add_argument("--input", type=Path)
     make.add_argument("--spec", help=f"standard key (see `{parser.prog} specs`)")
     make.add_argument(
@@ -277,36 +288,81 @@ def _job_from_auto(args: argparse.Namespace) -> pipeline.Job:
     )
 
 
-def cmd_make(args: argparse.Namespace) -> int:
-    if args.auto and args.config is None and (
+def cmd_validate(args: argparse.Namespace) -> int:
+    from . import validate as check
+
+    spec = get_spec(args.spec)
+    try:
+        findings, _photo = check.validate_file(args.photo, spec)
+    except OSError as exc:
+        print(f"error: cannot read {args.photo}: {exc.strerror or exc}",
+              file=sys.stderr)
+        return 2
+    print(f"{spec.name}")
+    print(f"  photo    {args.photo}")
+    print()
+    for finding in findings:
+        print("  " + finding.format())
+    failed = [f for f in findings if f.status == "FAIL"]
+    warned = [f for f in findings if f.status == "WARN"]
+    if failed:
+        print("\n  FAILED - photo does not match the standard.")
+        return 1
+    if warned:
+        print("\n  Passed with warnings - review them before printing.")
+        return 1 if args.strict else 0
+    print("\n  All checks passed.")
+    return 0
+
+
+def _jobs_from_args(args: argparse.Namespace) -> list[pipeline.Job]:
+    """One job per --config (batch), or a single flag-built job."""
+    if args.configs:
+        return [
+            _apply_overrides(pipeline.load_job(config), args)
+            for config in args.configs
+        ]
+    if args.auto and (
         args.landmarks is None or (args.bg_mode is None and args.matte is None)
     ):
-        job = _job_from_auto(args)
-        job = _apply_overrides(job, args)
-    else:
-        job = pipeline.load_job(args.config) if args.config else _job_from_flags(args)
-        job = _apply_overrides(job, args)
+        return [_apply_overrides(_job_from_auto(args), args)]
+    return [_apply_overrides(_job_from_flags(args), args)]
 
-    result = pipeline.run(job)
 
-    print(f"{job.spec.name}")
-    print(f"  source   {job.input_path}")
-    print(f"  photo    {job.spec.width_px}x{job.spec.height_px}px "
-          f"({job.spec.describe_size()} @ {job.spec.dpi}dpi) on {job.background_color}")
-    if result.framing.padded:
-        print("  note     the crop ran past the edge of the source; "
-              "the shortfall was filled with the background colour")
-    print()
-    for check in result.checks:
-        print("  " + check.format(job.spec.units))
-    print()
-    for path in result.written:
-        print(f"  wrote {path}")
+def cmd_make(args: argparse.Namespace) -> int:
+    jobs = _jobs_from_args(args)
 
-    if not result.ok:
-        print("\n  One or more checks FAILED - adjust the landmarks or pick a different spec.")
-        if args.strict:
-            return 1
+    failures = 0
+    for index, job in enumerate(jobs):
+        if len(jobs) > 1:
+            print(f"=== [{index + 1}/{len(jobs)}] {job.name} ({job.spec.key}) ===")
+        result = pipeline.run(job)
+
+        print(f"{job.spec.name}")
+        print(f"  source   {job.input_path}")
+        print(f"  photo    {job.spec.width_px}x{job.spec.height_px}px "
+              f"({job.spec.describe_size()} @ {job.spec.dpi}dpi) on {job.background_color}")
+        if result.framing.padded:
+            print("  note     the crop ran past the edge of the source; "
+                  "the shortfall was filled with the background colour")
+        print()
+        for check in result.checks:
+            print("  " + check.format(job.spec.units))
+        print()
+        for path in result.written:
+            print(f"  wrote {path}")
+
+        if not result.ok:
+            failures += 1
+            print("\n  One or more checks FAILED - adjust the landmarks or pick a "
+                  "different spec.")
+        if len(jobs) > 1:
+            print()
+
+    if len(jobs) > 1:
+        print(f"batch: {len(jobs) - failures}/{len(jobs)} compliant")
+    if failures and args.strict:
+        return 1
     return 0
 
 
@@ -317,6 +373,7 @@ def main(argv: list[str] | None = None) -> int:
         "papers": lambda: cmd_papers(),
         "grid": lambda: cmd_grid(args),
         "detect": lambda: cmd_detect(args),
+        "validate": lambda: cmd_validate(args),
         "make": lambda: cmd_make(args),
     }
     handler = handlers.get(args.command)

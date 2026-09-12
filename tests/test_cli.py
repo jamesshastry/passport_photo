@@ -5,6 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from PIL import Image
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -83,6 +85,61 @@ def test_strict_fails_on_non_compliant_framing(tmp_path):
     )
     assert proc.returncode == 1
     assert "FAILED" in proc.stdout
+
+
+def test_validate_command_passes_on_sample():
+    proc = run_cli(
+        "validate", "--photo", "samples/sample_us_2x2.png", "--spec", "us",
+    )
+    assert proc.returncode == 0
+    assert "All checks passed" in proc.stdout
+
+
+def test_validate_command_fails_on_wrong_spec():
+    proc = run_cli(
+        "validate", "--photo", "samples/sample_us_2x2.png", "--spec", "schengen",
+    )
+    assert proc.returncode == 1
+    assert "[FAIL] dimensions" in proc.stdout
+
+
+def test_validate_warns_but_passes_without_strict(tmp_path):
+    tinted = tmp_path / "tinted.png"
+    Image.new("RGB", (600, 600), "#FFE0C0").save(tinted)
+    proc = run_cli("validate", "--photo", str(tinted), "--spec", "us")
+    assert proc.returncode == 0
+    strict = run_cli(
+        "validate", "--photo", str(tinted), "--spec", "us", "--strict",
+    )
+    assert strict.returncode == 1
+
+
+def test_batch_runs_each_config_and_reports(tmp_path):
+    outdir = tmp_path / "out"
+    proc = run_cli(
+        "make", "--config", "subjects/example/subject.json",
+        "--config", "subjects/example/subject.json",
+        "--spec", "schengen",
+        "--outdir", str(outdir), "--name", "twin",
+        "--no-sheet", "--no-proof", "--no-spec-check",
+    )
+    assert proc.returncode == 0
+    assert proc.stdout.count("=== [") == 2
+    assert "batch: 2/2 compliant" in proc.stdout
+    assert (outdir / "twin_schengen_300dpi.png").exists()
+
+
+def test_batch_strict_fails_when_any_job_fails(tmp_path):
+    outdir = tmp_path / "out"
+    proc = run_cli(
+        "make", "--config", "subjects/example/subject.json",
+        "--config", "subjects/example/subject.json",
+        "--landmarks", "crown=900,chin=1900,eye=1850,center=1512",
+        "--outdir", str(outdir), "--name", "bad",
+        "--no-sheet", "--strict",
+    )
+    assert proc.returncode == 1
+    assert "batch: 0/2 compliant" in proc.stdout
 
 
 def test_non_strict_still_writes_despite_failure(tmp_path):

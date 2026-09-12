@@ -87,10 +87,24 @@ passportphoto specs     # list standards, with sizes and head tolerances
 passportphoto papers    # list print sheet sizes
 passportphoto grid      # labelled coordinate grid for reading landmarks
 passportphoto detect    # draft landmarks (+matte); needs .[auto]
+passportphoto validate --photo me_us_300dpi.png --spec us
 passportphoto make      # generate (add --strict to fail on any check failure)
 ```
 
 `make --strict` exits non-zero when any compliance check fails, for scripting.
+
+## Checking and batching
+
+`validate` inspects a finished photo — yours or a lab's — without generating
+anything. Dimensions are a hard PASS/FAIL; background colour and sharpness are
+advisories (a heuristic must never talk you out of a compliant photo).
+
+`--config` is repeatable, so one run covers the whole family — any other flag
+still overrides every config:
+
+```bash
+passportphoto make --config subjects/ana/ana.json --config subjects/leo/leo.json
+```
 
 ## Standards included
 
