@@ -138,6 +138,37 @@ def test_validate_command_fails_on_wrong_spec():
     assert "[FAIL] dimensions" in proc.stdout
 
 
+def test_validate_directory_mode_reports_summary(tmp_path):
+    import shutil
+
+    subjects = tmp_path / "prints"
+    subjects.mkdir()
+    shutil.copy("samples/sample_us_2x2.png", subjects / "good.png")
+    Image.new("RGB", (100, 100), "#FFFFFF").save(subjects / "small.png")
+    (subjects / "notes.txt").write_text("not an image")
+    proc = run_cli("validate", "--photo", str(subjects), "--spec", "us")
+    assert proc.returncode == 1
+    assert proc.stdout.count("=== [") == 2
+    assert "validate: 1/2 passed" in proc.stdout
+
+
+def test_validate_empty_directory_is_an_error(tmp_path):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    proc = run_cli("validate", "--photo", str(empty), "--spec", "us")
+    assert proc.returncode == 2
+    assert "no images" in proc.stderr
+
+
+def test_validate_repeated_photo_flags(tmp_path):
+    proc = run_cli(
+        "validate", "--photo", "samples/sample_us_2x2.png",
+        "--photo", "samples/sample_us_2x2.png", "--spec", "us",
+    )
+    assert proc.returncode == 0
+    assert "validate: 2/2 passed" in proc.stdout
+
+
 def test_validate_warns_but_passes_without_strict(tmp_path):
     tinted = tmp_path / "tinted.png"
     Image.new("RGB", (600, 600), "#FFE0C0").save(tinted)

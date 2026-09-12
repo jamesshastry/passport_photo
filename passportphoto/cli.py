@@ -55,9 +55,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     validate = sub.add_parser(
         "validate",
-        help="check a finished photo against a standard without generating anything",
+        help="check finished photos against a standard without generating anything",
     )
-    validate.add_argument("--photo", required=True, type=Path)
+    validate.add_argument("--photo", required=True, action="append", type=Path,
+                          help="photo file or directory (scanned for images), repeatable")
     validate.add_argument("--spec", required=True,
                           help="standard key (see `passportphoto specs`)")
     validate.add_argument("--strict", action="store_true",
@@ -323,30 +324,67 @@ def _job_from_auto(args: argparse.Namespace) -> pipeline.Job:
     )
 
 
+IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp")
+
+
+def _collect_photos(paths: list[Path]) -> list[Path]:
+    """Expand --photo entries: files as-is, directories scanned for images."""
+    collected: list[Path] = []
+    for path in paths:
+        if path.is_dir():
+            found = sorted(
+                p for p in path.iterdir()
+                if p.is_file() and p.suffix.lower() in IMAGE_SUFFIXES
+            )
+            if not found:
+                raise ValueError(f"no images in {path}")
+            collected.extend(found)
+        else:
+            collected.append(path)
+    return collected
+
+
 def cmd_validate(args: argparse.Namespace) -> int:
     from . import validate as check
 
     spec = get_spec(args.spec)
-    try:
-        findings, _photo = check.validate_file(args.photo, spec)
-    except OSError as exc:
-        print(f"error: cannot read {args.photo}: {exc.strerror or exc}",
-              file=sys.stderr)
-        return 2
-    print(f"{spec.name}")
-    print(f"  photo    {args.photo}")
-    print()
-    for finding in findings:
-        print("  " + finding.format())
-    failed = [f for f in findings if f.status == "FAIL"]
-    warned = [f for f in findings if f.status == "WARN"]
+    photos = _collect_photos(args.photo)
+
+    failed = warned = 0
+    for index, photo_path in enumerate(photos):
+        if len(photos) > 1:
+            print(f"=== [{index + 1}/{len(photos)}] {photo_path.name} ===")
+        try:
+            findings, _photo = check.validate_file(photo_path, spec)
+        except OSError as exc:
+            print(f"error: cannot read {photo_path}: {exc.strerror or exc}",
+                  file=sys.stderr)
+            return 2
+        print(f"{spec.name}")
+        print(f"  photo    {photo_path}")
+        print()
+        for finding in findings:
+            print("  " + finding.format())
+        if any(f.status == "FAIL" for f in findings):
+            failed += 1
+            print("\n  FAILED - photo does not match the standard.")
+        elif any(f.status == "WARN" for f in findings):
+            warned += 1
+            print("\n  Passed with warnings - review them before printing.")
+        else:
+            print("\n  All checks passed.")
+        if len(photos) > 1:
+            print()
+
+    if len(photos) > 1:
+        summary = f"validate: {len(photos) - failed}/{len(photos)} passed"
+        if warned:
+            summary += f", {warned} with warnings"
+        print(summary)
     if failed:
-        print("\n  FAILED - photo does not match the standard.")
         return 1
-    if warned:
-        print("\n  Passed with warnings - review them before printing.")
-        return 1 if args.strict else 0
-    print("\n  All checks passed.")
+    if warned and args.strict:
+        return 1
     return 0
 
 

@@ -34,6 +34,11 @@ measurements may fail.
   interior under every band/threshold tried, so it failed the gate. No
   detector ships on vibes.
 
+## Round 3
+
+- [x] **Validate directory mode** — `--photo` repeatable, directories scanned
+  for images, per-photo headers plus a `validate: x/y passed` summary.
+
 ## Round 2 (from the adversarial review of shipped features)
 
 - [x] **Batch resilience** (`--continue-on-error`, per-job summary, collision

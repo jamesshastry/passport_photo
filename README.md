@@ -94,6 +94,7 @@ passportphoto pick --input photo.jpg --out landmarks.html
                     # drag-the-lines picker page (works from file://)
 passportphoto detect    # draft landmarks (+matte); needs .[auto]
 passportphoto validate --photo me_us_300dpi.png --spec us
+passportphoto validate --photo prints/ --spec us   # a whole folder at once
 passportphoto make      # generate (add --strict to fail on any check failure)
 ```
 
