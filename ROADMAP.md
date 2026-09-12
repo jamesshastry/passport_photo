@@ -6,8 +6,8 @@ measurements may fail.
 
 ## Now (small, safe, tested like the rest)
 
-- [ ] **More paper sizes** — 10×15 cm and other common lab sizes in `sheet.PAPERS`.
-  Pure data + tiling counts, same tests as existing papers.
+- [x] **More paper sizes** — 9×13, 10×15 and 13×18 cm in `sheet.PAPERS`,
+  with tiling counts pinned in tests.
 - [x] **PDF print-sheet output** (`make --pdf`) — labs that take uploads often
   want PDF. Same tiling, different container; JPEG-encoded, so the PNG stays
   the exact artifact.
