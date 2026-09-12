@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "passportphoto"
+version = "1.0.0"
+description = "Generate spec-compliant passport, visa and ID photos from a portrait"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+  "Pillow>=10.0",
+  "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+auto = [
+  "mediapipe>=0.10",
+  "rembg>=2.0",
+]
+test = [
+  "pytest>=8.0",
+]
+
+[project.scripts]
+passportphoto = "passportphoto.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["passportphoto*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,35 @@
+{
+  "_comment": [
+    "Synthetic example subject - nobody real, no licence needed, safe to ship.",
+    "",
+    "Regenerate source/ with `python3 make_source.py`. The landmarks below are",
+    "ground truth: they are the same constants the drawing code positioned the",
+    "features with, not numbers read off a grid. That makes this the one subject",
+    "where a framing bug shows up as a measurable error rather than a judgement",
+    "call, which is why it doubles as the geometry test fixture.",
+    "",
+    "The background is deliberately busy so the matte path is exercised. Try",
+    "`--bg keep` to see what a non-compliant background looks like."
+  ],
+  "name": "example",
+  "spec": "us",
+  "input": "source/portrait.jpg",
+  "outdir": "output",
+  "landmarks": {
+    "crown": 900,
+    "chin": 1900,
+    "eye": 1380,
+    "center": 1512
+  },
+  "background": {
+    "mode": "matte",
+    "matte": "source/matte.png",
+    "feather_px": 1.0,
+    "choke_px": 1.0
+  },
+  "adjustments": {
+    "sharpen": 0.2
+  },
+  "sheets": ["4x6"],
+  "copies": 6
+}
