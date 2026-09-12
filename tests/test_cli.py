@@ -51,13 +51,17 @@ def test_eye_outside_head_is_an_error():
     assert proc.returncode == 2
 
 
-def test_detect_without_extras_points_at_the_extra():
+def test_detect_fails_cleanly_on_a_faceless_image(tmp_path):
+    # Hermetic whether or not the [auto] packages are installed: without
+    # them the error names the extra, with them the detector finds no face.
+    blank = tmp_path / "blank.png"
+    Image.new("RGB", (400, 400), "#808080").save(blank)
     proc = run_cli(
-        "detect", "--input", "subjects/example/source/portrait.jpg",
-        "--outdir", "/tmp/pp_test_detect",
+        "detect", "--input", str(blank),
+        "--outdir", str(tmp_path / "subject"),
     )
     assert proc.returncode == 2
-    assert "passportphoto[auto]" in proc.stderr
+    assert "passportphoto[auto]" in proc.stderr or "no face" in proc.stderr
 
 
 def test_spec_flag_overrides_config(tmp_path):

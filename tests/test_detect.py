@@ -38,9 +38,13 @@ def test_draft_subject_without_matte_keeps_background():
     assert "eyes" not in draft["landmarks"]
 
 
-def test_run_detect_without_extras_fails_cleanly(tmp_path):
+def test_run_detect_without_extras_fails_cleanly(tmp_path, monkeypatch):
+    import sys
     from pathlib import Path
 
+    # Hide the backend even when it is installed, to exercise the
+    # missing-extra path hermetically.
+    monkeypatch.setitem(sys.modules, "cv2", None)
     with pytest.raises(RuntimeError, match=r"passportphoto\[auto\]"):
         detect.run_detect(
             Path("subjects/example/source/portrait.jpg"),

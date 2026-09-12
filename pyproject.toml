@@ -16,7 +16,7 @@ dependencies = [
 
 [project.optional-dependencies]
 auto = [
-  "mediapipe>=0.10",
+  "opencv-python>=4.8",
   "rembg>=2.0",
 ]
 test = [

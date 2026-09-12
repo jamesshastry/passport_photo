@@ -1,10 +1,13 @@
 """Optional auto-detection of landmarks and cutout matte.
 
-This module is a genuine extra: it imports ``mediapipe`` and ``rembg`` lazily,
-so the manual Pillow+numpy path keeps working untouched when they are not
+This module is a genuine extra: it imports ``cv2`` and ``rembg`` lazily, so
+the manual Pillow+numpy path keeps working untouched when they are not
 installed. Install with::
 
     pip install passportphoto[auto]
+
+Landmarks come from a YuNet face detector (box + five keypoints); the model
+is fetched once into the user cache on first use.
 
 Accuracy caveat (read this): face detectors follow the *visible face*, not the
 hair. They routinely clip dark or voluminous hair, and the crown — top of the
@@ -18,11 +21,23 @@ and fix the numbers with ``passportphoto grid`` before paying for prints.
 from __future__ import annotations
 
 import importlib
+import os
+import sys
+import urllib.request
 from pathlib import Path
 
 from PIL import Image
 
 from .landmarks import Landmarks
+
+# YuNet face-detection model (OpenCV zoo), fetched once into the user cache.
+MODEL_URL = (
+    "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/"
+    "face_detection_yunet_2023mar.onnx"
+)
+MODEL_FILENAME = "face_detection_yunet_2023mar.onnx"
+# Faces below this confidence are ignored; the best of the rest wins.
+MIN_SCORE = 0.5
 
 # How far above the detected face top to place the crown guess, as a fraction
 # of the detected face height. Deliberately generous: an over-tall head-height
@@ -31,53 +46,61 @@ from .landmarks import Landmarks
 CROWN_EXPANSION_FRAC = 0.18
 
 
-def _require(module: str):
+def _require(module: str, pip_name: str | None = None):
     try:
         return importlib.import_module(module)
     except ImportError:
         raise RuntimeError(
-            f"auto-detection needs the {module!r} package - "
+            f"auto-detection needs the {pip_name or module!r} package - "
             f"pip install 'passportphoto[auto]'"
         ) from None
 
 
+def _model_path() -> Path:
+    """The detector bundle, downloading it once on first use."""
+    cache = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
+    dest = cache / "passportphoto" / MODEL_FILENAME
+    if not dest.exists():
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        print("downloading face-detector model (one time, ~1 MB) ...",
+              file=sys.stderr)
+        urllib.request.urlretrieve(MODEL_URL, dest)
+    return dest
+
+
 def detect_landmarks(source: Image.Image) -> tuple[Landmarks, dict]:
-    """Estimate landmarks with MediaPipe FaceMesh.
+    """Estimate landmarks with a YuNet face detector.
 
     Returns (landmarks, meta) where meta records which values are estimates.
     Raises ValueError when no face is found.
     """
-    mp = _require("mediapipe")
+    cv2 = _require("cv2", pip_name="opencv-python")
     import numpy as np
 
-    rgb = np.asarray(source.convert("RGB"))
-    h, w = rgb.shape[:2]
-    with mp.solutions.face_mesh.FaceMesh(
-        static_image_mode=True, max_num_faces=1, refine_landmarks=True
-    ) as mesh:
-        result = mesh.process(rgb)
-    if not result.multi_face_landmarks:
+    w, h = source.size
+    detector = cv2.FaceDetectorYN.create(str(_model_path()), "", (w, h))
+    _retval, faces = detector.detect(np.asarray(source.convert("RGB")))
+    rows = faces if faces is not None else []
+    faces = [f for f in rows if f[14] >= MIN_SCORE]
+    if not faces:
         raise ValueError("no face found in the input image")
-    pts = result.multi_face_landmarks[0].landmark
-    xs = [p.x * w for p in pts]
-    ys = [p.y * h for p in pts]
-
-    # Face oval (MediaPipe's FACEMESH_FACE_OVAL connection set, as indices).
-    oval = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288,
-            397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136,
-            172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109]
-    top = min(ys[i] for i in oval)
-    chin = max(ys[i] for i in oval)
-    face_h = chin - top
-
-    def midpoint(a: int, b: int) -> tuple[float, float]:
-        return ((xs[a] + xs[b]) / 2, (ys[a] + ys[b]) / 2)
-
-    # Eye centres from the eye corners (outer, inner).
-    lx, ly = midpoint(33, 133)
-    rx, ry = midpoint(362, 263)
+    # Best face wins; columns are x, y, w, h, right eye, left eye, nose,
+    # mouth corners, score.
+    box = max(faces, key=lambda f: f[14])
+    # Order the eyes by image x rather than trusting the model's left/right
+    # labels, so the roll sign is always geometrically correct.
+    (ex1, ey1), (ex2, ey2) = sorted(
+        [(box[4], box[5]), (box[6], box[7])], key=lambda p: p[0]
+    )
+    lx, ly, rx, ry = (float(v) for v in (ex1, ey1, ex2, ey2))
     eye_y = (ly + ry) / 2
     center_x = (lx + rx) / 2
+
+    # The box tracks skin, not hair: top is roughly the forehead, chin is the
+    # box bottom. Guess the crown above the box top.
+    top = float(box[1])
+    chin = float(box[1] + box[3])
+    face_h = chin - top
 
     # The mesh tracks skin, not hair: guess the crown above the face top.
     crown = max(0.0, top - CROWN_EXPANSION_FRAC * face_h)

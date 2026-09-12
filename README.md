@@ -72,6 +72,10 @@ passportphoto make --config subjects/me/me.json
 
 Or in one step: `passportphoto make --input photo.jpg --spec us --auto`.
 
+First run downloads the face-detector (~1 MB) and the rembg cutout model
+(~1 GB) into your local cache — one time only, after which detection works
+offline.
+
 > **Accuracy caveat.** Detectors follow the visible face, not the hair — they
 > clip dark and voluminous hair, and the crown is exactly the measurement a
 > print rejection turns on. Detection output is a **first draft**: the crown is
