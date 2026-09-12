@@ -36,6 +36,9 @@ line) and `center` (face midline x). Render a labelled grid and read them off:
 passportphoto grid --input photo.jpg --out /tmp/grid.png
 ```
 
+Alternatively `passportphoto pick --input photo.jpg --out landmarks.html`
+opens a page where you drag the lines into place and export the numbers.
+
 **3. Generate:**
 
 ```bash
@@ -57,7 +60,12 @@ Any flag overrides the config, so `--spec schengen` retargets a subject in one l
 For `--spec us --name me` you get: `me_us_300dpi.png` (the photo, 600×600 px),
 `me_us_spec_check.png` (the examiner's lines drawn on it), `me_us_before_after.png`,
 `me_us_sheet_4x6_6up_300dpi.png` (six copies on a 4×6 print), a low-res proof,
-and `me_us_report.json` with every measurement and pass/fail.
+and `me_us_report.json` with every measurement and pass/fail. Add `--pdf` for
+a lab-upload PDF of each sheet.
+
+The report also carries *advisories* (currently glasses glare): warnings that
+never affect compliance or `--strict` — heuristics must not talk you out of a
+compliant photo.
 
 **Read the spec check before you print.** Green lines are where your landmarks
 landed; blue/purple bands are the tolerances. Print the *sheet*, not the photo —
@@ -107,8 +115,9 @@ passportphoto make      # generate (add --strict to fail on any check failure)
 ## Checking and batching
 
 `validate` inspects a finished photo — yours or a lab's — without generating
-anything. Dimensions are a hard PASS/FAIL; background colour and sharpness are
-advisories (a heuristic must never talk you out of a compliant photo).
+anything. Pass a file, repeat `--photo`, or point it at a directory of prints.
+Dimensions are a hard PASS/FAIL; background colour, sharpness and lighting
+balance are advisories, and `--strict` escalates warnings to failures.
 
 `--config` is repeatable, so one run covers the whole family — any other flag
 still overrides every config:
@@ -116,6 +125,10 @@ still overrides every config:
 ```bash
 passportphoto make --config subjects/ana/ana.json --config subjects/leo/leo.json
 ```
+
+Add `--continue-on-error` so one bad config doesn't stop the batch (the
+summary counts compliant vs errored). Jobs targeting the same outputs warn
+before overwriting each other.
 
 ## Standards included
 
