@@ -29,5 +29,8 @@ passportphoto = "passportphoto.cli:main"
 [tool.setuptools.packages.find]
 include = ["passportphoto*"]
 
+[tool.setuptools.package-data]
+passportphoto = ["specs.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

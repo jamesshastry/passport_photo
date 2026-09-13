@@ -142,7 +142,8 @@ before overwriting each other.
 `us` · `india_passport` · `india_visa` · `schengen` · `uk` · `canada` ·
 `australia` · `japan` · `china_visa` · `icao` · `linkedin_headshot`
 
-**Add a country** by appending to `specs.json` — no code change needed. Every
+**Add a country** by appending to `passportphoto/specs.json` — no code change
+needed. Every
 measurement there is in millimetres; `units` only controls reporting. Stamp
 `reviewed_on` with the month you checked the guidance — `make` warns once a
 standard goes a year without re-checking, because requirements change.

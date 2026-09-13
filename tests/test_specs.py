@@ -17,8 +17,21 @@ def test_all_eleven_standards_load():
     assert set(load_specs()) == EXPECTED_KEYS
 
 
+def test_specs_data_ships_inside_the_package():
+    # Regression: pip install . must carry specs.json into site-packages,
+    # or every installed (non-editable) copy fails to find it.
+    import passportphoto
+    from passportphoto.specs import SPECS_PATH
+
+    package_dir = Path(passportphoto.__file__).parent
+    assert SPECS_PATH.parent == package_dir
+    assert SPECS_PATH.is_file()
+
+
 def test_comment_keys_are_skipped():
-    raw = json.loads(Path("specs.json").read_text())
+    from passportphoto.specs import SPECS_PATH
+
+    raw = json.loads(SPECS_PATH.read_text())
     assert "_comment" in raw
     assert "_comment" not in load_specs()
 

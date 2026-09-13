@@ -8,7 +8,9 @@ from datetime import date
 from pathlib import Path
 
 MM_PER_INCH = 25.4
-SPECS_PATH = Path(__file__).resolve().parent.parent / "specs.json"
+# Lives inside the package (shipped as package data) so an installed copy
+# keeps working, not just a source checkout.
+SPECS_PATH = Path(__file__).resolve().parent / "specs.json"
 
 
 def mm_to_px(mm: float, dpi: int) -> float:
