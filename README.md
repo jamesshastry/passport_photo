@@ -158,6 +158,12 @@ a single `Image.resize(box=...)` resample, and tone adjustments are
 exposure-only — nothing reshapes faces or smooths skin, since retouched-looking
 photos get rejected.
 
+Tilt is straightened before the crop is computed, but rotation swings the
+frame's corners outside the source — pixels that don't exist get filled with
+the background colour. So shoot wider than the final crop, with headroom on
+all sides: a tight source leaves a visible fill wedge, and no reordering can
+conjure the missing pixels.
+
 ## Synthetic example
 
 `subjects/example/` is a computer-drawn portrait against a busy background
