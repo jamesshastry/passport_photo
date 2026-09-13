@@ -11,6 +11,8 @@ def test_scaffold_writes_layout_and_starter(tmp_path):
     config = scaffolder.scaffold(tmp_path / "me", "me", "schengen")
     assert config == tmp_path / "me" / "me.json"
     assert (tmp_path / "me" / "source").is_dir()
+    assert (tmp_path / "me" / "output").is_dir()
+    assert (tmp_path / "me" / "source" / "PUT_PORTRAIT_HERE.txt").is_file()
     starter = json.loads(config.read_text())
     assert starter["spec"] == "schengen"
     assert starter["name"] == "me"

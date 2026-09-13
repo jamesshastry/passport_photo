@@ -20,7 +20,14 @@ pip install ".[auto]"
 ## Quickstart (manual path, always works)
 
 **0. Scaffold (optional).** `passportphoto init --outdir subjects/me` creates
-the folder and a starter config, then tells you the next steps.
+the subject folder and tells you the next steps:
+
+```
+subjects/me/
+├── me.json              # the recipe (landmarks come later, via step 2)
+├── source/              # drop your portrait here as portrait.jpg
+└── output/              # generated photos land here
+```
 
 **1. Cut the subject out.** You need an alpha matte: a greyscale PNG the same
 shape as your photo, white where the subject is, black where the background is.

@@ -13,9 +13,15 @@ from pathlib import Path
 
 
 def scaffold(dest: Path, name: str, spec_key: str) -> Path:
-    """Create ``dest`` with source/ and a starter ``<name>.json``."""
+    """Create ``dest`` with source/, output/ and a starter ``<name>.json``."""
     dest = Path(dest)
     (dest / "source").mkdir(parents=True, exist_ok=True)
+    (dest / "output").mkdir(parents=True, exist_ok=True)
+    (dest / "source" / "PUT_PORTRAIT_HERE.txt").write_text(
+        "Copy your portrait photo into this folder as portrait.jpg,\n"
+        "then measure landmarks (step 2 below).\n",
+        encoding="utf-8",
+    )
     config = dest / f"{name}.json"
     config.write_text(
         json.dumps(
